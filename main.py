@@ -40,9 +40,9 @@ def rssi_to_dis(rssi):
     elif rssi <= 0:
         return 'extremely closely'
 def rssi_to_severity(rssi):
-    if rssi >= -50 and rssi <= -40:
+    if rssi >= -70 and rssi <= -50:
         return 1
-    elif rssi >= -40:
+    elif rssi >= -50:
         return 2
 
 def display_severity():
@@ -62,18 +62,17 @@ def display_severity():
 
 def handle_severity(stop_event):
     global severity_time, severity_timeout, severity_index
-    while not stop_event.is_set():
-        try:
+    try:
+        while not stop_event.is_set():
             if severity_time+severity_timeout < time.time():
                 if severity_index > 0 :
                     severity_index -= 1
                     severity_time = time.time()
             display_severity()
-        except KeyboardInterrupt:
-            quit()
-        display_severity()
-        time.sleep(0.1)
-    print("Handle quitting!")
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+                print("Quitting handle.")
+                quit()
 def hop_channels(stop_event):
     global channels, channel_index
     time.sleep(2)
@@ -105,6 +104,7 @@ def pk_handle(packet):
                         if severity_index < 2:
                             severity_index = 1
                             severity_time = c_time
+                            buzzer.beep(on_time=0.5, off_time=0.5, n=2, background=True)
                     case 2:
                         severity_index = 2
                         severity_time = c_time
@@ -136,3 +136,9 @@ sudo ip link set {interface} up
 sudo systemctl restart NetworkManager""")
     except Exception as e:
         print(f'Failed because of {e}')
+    finally:
+        stop_event.set()
+        system(f"""sudo ip link set {interface} down
+sudo iw dev {interface} set type managed
+sudo ip link set {interface} up
+sudo systemctl restart NetworkManager""")
